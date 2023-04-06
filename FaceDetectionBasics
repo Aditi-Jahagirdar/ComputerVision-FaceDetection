@@ -1,0 +1,50 @@
+import cv2
+import mediapipe as mp
+import time
+
+#1. To run the video
+cap = cv2.VideoCapture("Videos/2.mp4")
+pTime = 0
+
+#3.Import face_detection module from mediapipe
+mpFaceDetection = mp.solutions.face_detection
+mpDraw = mp.solutions.drawing_utils
+#changing minimum detection confidence from default 0.5 to 0.75 as there was false positive detection
+#However, false positives still observed for 0.9999 in video 1.mp4
+faceDetection = mpFaceDetection.FaceDetection(0.75)
+
+while True:
+    success, img = cap.read()
+#4.Convert BGR to RGB image(for mediapipe library)
+    imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    results = faceDetection.process(imgRGB)
+    print(results)
+
+#5. If face is detected, to draw & find the id number,score(confidence level),bounding box
+    if results.detections:
+        for id,detection in enumerate (results.detections):
+            mpDraw.draw_detection(img,detection)
+            # print(id, detection)
+            # print(detection.score)
+            print(detection.location_data.relative_bounding_box)
+            
+#6. To get bounding box value in shorter syntax.
+# bBoxC - bounding box coming from a class
+            bBoxC = detection.location_data.relative_bounding_box
+            
+#   To convert normalized value bBoxC TO pixel value bounding box bBox ih, iw,ic are width,height and channel of image
+            ih, iw, ic = img.shape
+            bBox = int(bBoxC.xmin * iw), int(bBoxC.ymin * ih), \
+                   int(bBoxC.width * iw), int(bBoxC.height * ih),
+            cv2.rectangle(img, bBox, (255, 0, 255), 2)
+            cv2.putText(img, f': {int(detection.score[0]*100)}%', (bBox[0],bBox[1]-20), cv2.FONT_HERSHEY_PLAIN,
+                        5, (255, 0, 255), 2)
+
+#2.To calculate and see the frame rate on video
+    cTime = time.time()
+    fps = 1/(cTime-pTime)
+    pTime = cTime
+    cv2.putText(img, f'FPS: {int(fps)}', (20, 70), cv2.FONT_HERSHEY_PLAIN,
+                5, (255, 153, 255), 2)
+    cv2.imshow("Image", img)
+    cv2.waitKey(1)
